@@ -405,17 +405,18 @@ html, body {
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     z-index: 100;
-    display: flex;
+    display: none; /* Hide completely from rendering tree by default */
     justify-content: center;
-    align-items: flex-start; /* Changed from center to allow scrolling from top */
+    align-items: flex-start;
     padding: 20px;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.5s ease;
-    overflow-y: auto; /* Enable scrolling when content exceeds height */
+    transition: opacity 0.3s ease;
+    overflow-y: auto;
 }
 
 .overlay.active {
+    display: flex; /* Show only when active */
     opacity: 1;
     pointer-events: auto;
 }
