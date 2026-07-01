@@ -4,6 +4,8 @@
  * Vanilla JavaScript (ES6), HTML5 Canvas.
  */
 
+console.log("[ROANOKE] script.js loaded and executing at top level.");
+
 // --- 1. HISTORICAL 17th CENTURY PURITAN/ROANOKE NAMES ---
 const COLONIST_NAMES = [
     "John White", "Eleanor Dare", "Ananias Dare", "Virginia Dare", "Manteo", "Wanchese",
@@ -455,6 +457,7 @@ class Colonist {
 // --- 4. MAIN GAME STATE ENGINE ---
 class GameEngine {
     constructor() {
+        console.log("[ROANOKE] GameEngine constructor started.");
         try {
             this.canvas = document.getElementById('game-canvas');
             if (!this.canvas) throw new Error("Element '#game-canvas' not found!");
@@ -523,10 +526,10 @@ class GameEngine {
             this.btnRestart = document.getElementById('btn-restart');
             this.btnRecall = document.getElementById('btn-recall');
 
-            // Setup Event Handlers
             this.setupHandlers();
             this.resize();
             window.addEventListener('resize', () => this.resize());
+            console.log("[ROANOKE] GameEngine constructor successfully finished.");
         } catch (err) {
             console.error("GameEngine Initialization Error:", err);
             alert("Initialization Error: " + err.message + "\nStack: " + err.stack);
@@ -564,9 +567,11 @@ class GameEngine {
         try {
             // Start Expedition
             this.btnStart.addEventListener('click', () => {
+                console.log("[ROANOKE] Start button click handler triggered!");
                 try {
                     soundController.init();
                     soundController.playClick();
+                    console.log("[ROANOKE] Hiding start overlay...");
                     this.startOverlay.classList.remove('active');
                     this.initGame();
                 } catch (e) {
@@ -628,6 +633,7 @@ class GameEngine {
     }
 
     initGame() {
+        console.log("[ROANOKE] initGame() started...");
         // Recalculate layout dimensions to ensure non-zero values on start
         this.resize();
 
@@ -668,6 +674,7 @@ class GameEngine {
 
         this.isRunning = true;
         this.lastTime = performance.now();
+        console.log("[ROANOKE] initGame() finished successfully. Scheduling loop via requestAnimationFrame.");
         requestAnimationFrame((time) => this.loop(time));
     }
 
