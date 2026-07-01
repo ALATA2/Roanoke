@@ -1110,7 +1110,10 @@ class GameEngine {
 }
 
 // --- 5. INITIALIZE APPLICATION ENGINE ---
-document.addEventListener('DOMContentLoaded', () => {
-    // Launch game
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        window.game = new GameEngine();
+    });
+} else {
     window.game = new GameEngine();
-});
+}
