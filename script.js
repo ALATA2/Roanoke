@@ -40,6 +40,11 @@ class SoundController {
         this.ambientOsc = null;
         this.ambientGain = null;
         this.ambientFilter = null;
+
+        // Music dynamic states
+        this.musicInterval = null;
+        this.musicStep = 0;
+        this.isNightTime = false;
     }
 
     // Initialize audio context on first user interaction
@@ -49,6 +54,7 @@ class SoundController {
             const AudioContextClass = window.AudioContext || window.webkitAudioContext;
             this.ctx = new AudioContextClass();
             this.startAmbient();
+            this.startMusic();
         } catch (e) {
             console.warn("Web Audio API is not supported or failed to initialize", e);
         }
@@ -82,6 +88,7 @@ class SoundController {
     }
 
     stopAmbient() {
+        this.stopMusic(); // Stop music loop
         try {
             if (this.ambientOsc) {
                 this.ambientOsc.stop();
@@ -95,16 +102,19 @@ class SoundController {
 
     // Pitch & volume shift on Day/Night transition
     setNightAmbient(isNight) {
-        if (!this.ctx || this.muted || !this.ambientOsc) return;
+        this.isNightTime = isNight; // Toggle music scale modes
+        if (!this.ctx || this.muted) return;
         
-        const now = this.ctx.currentTime;
-        const targetFreq = isNight ? 41.20 : 55; // Lower Pitch at Night (E1 vs A1)
-        const targetGain = isNight ? 0.06 : 0.03; // Louder/more oppressive at night
-        const targetFilter = isNight ? 75 : 110;  // Muffled filter at night
-        
-        this.ambientOsc.frequency.exponentialRampToValueAtTime(targetFreq, now + 3.0);
-        this.ambientFilter.frequency.exponentialRampToValueAtTime(targetFilter, now + 3.0);
-        this.ambientGain.gain.linearRampToValueAtTime(targetGain, now + 3.0);
+        if (this.ambientOsc) {
+            const now = this.ctx.currentTime;
+            const targetFreq = isNight ? 41.20 : 55; // Lower Pitch at Night (E1 vs A1)
+            const targetGain = isNight ? 0.06 : 0.03; // Louder/more oppressive at night
+            const targetFilter = isNight ? 75 : 110;  // Muffled filter at night
+            
+            this.ambientOsc.frequency.exponentialRampToValueAtTime(targetFreq, now + 3.0);
+            this.ambientFilter.frequency.exponentialRampToValueAtTime(targetFilter, now + 3.0);
+            this.ambientGain.gain.linearRampToValueAtTime(targetGain, now + 3.0);
+        }
     }
 
     playClick() {
@@ -321,6 +331,94 @@ class SoundController {
         gain.connect(this.ctx.destination);
         osc.start(now);
         osc.stop(now + 1.8);
+    }
+
+    startMusic() {
+        if (!this.ctx || this.muted) return;
+        this.stopMusic();
+
+        this.musicStep = 0;
+        const beatDuration = 0.8; // Seconds per beat (approx 75 BPM)
+
+        const tick = () => {
+            if (this.muted || !this.ctx) return;
+            const now = this.ctx.currentTime;
+
+            // Day: Melancholic A-minor/D-minor arpeggio (triangle wave - flute-like)
+            const dayChords = [
+                [220.00, 329.63, 440.00, 523.25], // Am: A3, E4, A4, C5
+                [146.83, 293.66, 349.23, 440.00], // Dm: D3, D4, F4, A4
+                [261.63, 329.63, 392.00, 523.25], // C: C4, E4, G4, C5
+                [164.81, 246.94, 415.30, 493.88]  // E7: E3, B3, G#4, B4
+            ];
+
+            // Night: Creepy, low, highly dissonant chords (sawtooth wave - heavy synth)
+            const nightChords = [
+                [110.00, 155.56, 220.00, 311.13], // Adim: A2, Eb3, A3, Eb4
+                [73.42, 110.00, 138.59, 220.00],  // Dm(b5): D2, A2, C#3, A3
+                [130.81, 164.81, 207.65, 261.63], // Caug: C3, E3, G#3, C4
+                [82.41, 123.47, 207.65, 246.94]   // E7(b9): E2, B2, G#3, B3
+            ];
+
+            const chordIndex = Math.floor((this.musicStep / 4) % 4);
+            const noteIndex = this.musicStep % 4;
+
+            const chords = this.isNightTime ? nightChords : dayChords;
+            const freq = chords[chordIndex][noteIndex];
+
+            this.playMusicNote(freq, this.isNightTime, beatDuration);
+
+            this.musicStep++;
+            this.musicInterval = setTimeout(tick, beatDuration * 1000);
+        };
+
+        tick();
+    }
+
+    stopMusic() {
+        if (this.musicInterval) {
+            clearTimeout(this.musicInterval);
+            this.musicInterval = null;
+        }
+    }
+
+    playMusicNote(freq, isNight, duration) {
+        if (!this.ctx || this.muted) return;
+        try {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            const filter = this.ctx.createBiquadFilter();
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.ctx.destination);
+
+            osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+
+            if (isNight) {
+                // Oppressive dark pad
+                osc.type = 'sawtooth';
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(130, this.ctx.currentTime);
+                filter.frequency.linearRampToValueAtTime(60, this.ctx.currentTime + duration);
+
+                gain.gain.setValueAtTime(0.035, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration * 1.6);
+            } else {
+                // Peaceful rustic wood flute
+                osc.type = 'triangle';
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(550, this.ctx.currentTime);
+
+                gain.gain.setValueAtTime(0.028, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration * 1.2);
+            }
+
+            osc.start();
+            osc.stop(this.ctx.currentTime + duration * 1.6);
+        } catch (e) {
+            console.error("Error playing music note", e);
+        }
     }
 }
 
