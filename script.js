@@ -455,62 +455,82 @@ class Colonist {
 // --- 4. MAIN GAME STATE ENGINE ---
 class GameEngine {
     constructor() {
-        this.canvas = document.getElementById('game-canvas');
-        this.ctx = this.canvas.getContext('2d');
-        this.container = document.getElementById('game-container');
-        this.canvasContainer = document.getElementById('canvas-container');
+        try {
+            this.canvas = document.getElementById('game-canvas');
+            if (!this.canvas) throw new Error("Element '#game-canvas' not found!");
+            
+            this.ctx = this.canvas.getContext('2d');
+            if (!this.ctx) throw new Error("Could not get 2D context for canvas!");
+            
+            this.container = document.getElementById('game-container');
+            if (!this.container) throw new Error("Element '#game-container' not found!");
+            this.canvasContainer = document.getElementById('canvas-container');
+            if (!this.canvasContainer) throw new Error("Element '#canvas-container' not found!");
 
-        // Logic coordinate bounds
-        this.logicalWidth = 0;
-        this.logicalHeight = 0;
+            // Logic coordinate bounds
+            this.logicalWidth = 0;
+            this.logicalHeight = 0;
 
-        // Resource & Balance values
-        this.food = 250;
-        this.wood = 0;
-        this.population = 101;
-        this.day = 1;
-        this.timeOfDay = 0; // 0 to 45 seconds (0-30 Day, 30-45 Night)
-        this.maxWoodStored = 0;
+            // Resource & Balance values
+            this.food = 250;
+            this.wood = 0;
+            this.population = 101;
+            this.day = 1;
+            this.timeOfDay = 0; // 0 to 45 seconds (0-30 Day, 30-45 Night)
+            this.maxWoodStored = 0;
 
-        this.colonists = [];
-        this.zones = {
-            fort: { x: 0, y: 0, radius: 40, safeRadius: 60, color: '#8c7853' },
-            forest: { x: 0, y: 0, radius: 45, color: '#1e3a27' },
-            coast: { x: 0, y: 0, radius: 45, color: '#1b363c' }
-        };
+            this.colonists = [];
+            this.zones = {
+                fort: { x: 0, y: 0, radius: 40, safeRadius: 60, color: '#8c7853' },
+                forest: { x: 0, y: 0, radius: 45, color: '#1e3a27' },
+                coast: { x: 0, y: 0, radius: 45, color: '#1b363c' }
+            };
 
-        this.isRunning = false;
-        this.gameOverState = false;
-        this.lastTime = 0;
-        this.threatTickTimer = 0;
-        this.screenShake = 0;
+            this.isRunning = false;
+            this.gameOverState = false;
+            this.lastTime = 0;
+            this.threatTickTimer = 0;
+            this.screenShake = 0;
+            this.lastResourceLog = 0;
 
-        // Event spam preventer
-        this.lastResourceLog = 0;
+            // Cache DOM elements and assert their existence
+            const requiredIds = [
+                'val-day', 'val-population', 'val-food', 'val-wood', 
+                'count-woodcutters', 'count-fishers', 'time-phase', 
+                'time-bar-inner', 'event-feed', 'start-overlay', 
+                'game-over-overlay', 'btn-start', 'btn-restart', 'btn-recall'
+            ];
+            requiredIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) throw new Error(`Required element '#${id}' not found in DOM!`);
+            });
 
-        // Cache DOM elements
-        this.valDay = document.getElementById('val-day');
-        this.valPopulation = document.getElementById('val-population');
-        this.valFood = document.getElementById('val-food');
-        this.valWood = document.getElementById('val-wood');
-        this.countWoodcutters = document.getElementById('count-woodcutters');
-        this.countFishers = document.getElementById('count-fishers');
-        
-        this.timePhase = document.getElementById('time-phase');
-        this.timeBarInner = document.getElementById('time-bar-inner');
-        this.eventFeed = document.getElementById('event-feed');
+            this.valDay = document.getElementById('val-day');
+            this.valPopulation = document.getElementById('val-population');
+            this.valFood = document.getElementById('val-food');
+            this.valWood = document.getElementById('val-wood');
+            this.countWoodcutters = document.getElementById('count-woodcutters');
+            this.countFishers = document.getElementById('count-fishers');
+            
+            this.timePhase = document.getElementById('time-phase');
+            this.timeBarInner = document.getElementById('time-bar-inner');
+            this.eventFeed = document.getElementById('event-feed');
 
-        // Screens/Buttons
-        this.startOverlay = document.getElementById('start-overlay');
-        this.gameOverOverlay = document.getElementById('game-over-overlay');
-        this.btnStart = document.getElementById('btn-start');
-        this.btnRestart = document.getElementById('btn-restart');
-        this.btnRecall = document.getElementById('btn-recall');
+            // Screens/Buttons
+            this.startOverlay = document.getElementById('start-overlay');
+            this.gameOverOverlay = document.getElementById('game-over-overlay');
+            this.btnStart = document.getElementById('btn-start');
+            this.btnRestart = document.getElementById('btn-restart');
+            this.btnRecall = document.getElementById('btn-recall');
 
-        // Setup Event Handlers
-        this.setupHandlers();
-        this.resize();
-        window.addEventListener('resize', () => this.resize());
+            // Setup Event Handlers
+            this.setupHandlers();
+            this.resize();
+            window.addEventListener('resize', () => this.resize());
+        } catch (err) {
+            console.error("GameEngine Initialization Error:", err);
+            alert("Initialization Error: " + err.message + "\nStack: " + err.stack);
+        }
     }
 
     // Dynamic High-DPI canvas scaler
@@ -522,7 +542,9 @@ class GameEngine {
         const dpr = window.devicePixelRatio || 1;
         this.canvas.width = this.logicalWidth * dpr;
         this.canvas.height = this.logicalHeight * dpr;
-        this.ctx.scale(dpr, dpr);
+        if (this.ctx) {
+            this.ctx.scale(dpr, dpr);
+        }
 
         this.updateZonePositions();
     }
@@ -539,47 +561,69 @@ class GameEngine {
     }
 
     setupHandlers() {
-        // Start Expedition
-        this.btnStart.addEventListener('click', () => {
-            soundController.init();
-            soundController.playClick();
-            this.startOverlay.classList.remove('active');
-            this.initGame();
-        });
-
-        // Restart Expedition
-        this.btnRestart.addEventListener('click', () => {
-            soundController.playClick();
-            this.gameOverOverlay.classList.remove('active');
-            this.initGame();
-        });
-
-        // Task Assignments Woodcutters
-        document.getElementById('btn-woodcutters-plus').addEventListener('click', () => this.assignJob('woodcutter', 10));
-        document.getElementById('btn-woodcutters-minus').addEventListener('click', () => this.assignJob('woodcutter', -10));
-
-        // Task Assignments Fishers
-        document.getElementById('btn-fishers-plus').addEventListener('click', () => this.assignJob('fisher', 10));
-        document.getElementById('btn-fishers-minus').addEventListener('click', () => this.assignJob('fisher', -10));
-
-        // Emergency Recall
-        this.btnRecall.addEventListener('click', () => this.recallAll());
-
-        // Mute Audio Toggle
-        const muteBtn = document.getElementById('mute-btn');
-        if (muteBtn) {
-            muteBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                soundController.muted = !soundController.muted;
-                muteBtn.textContent = soundController.muted ? '🔇' : '🔊';
-                soundController.playClick();
-                if (soundController.muted) {
-                    soundController.stopAmbient();
-                } else {
+        try {
+            // Start Expedition
+            this.btnStart.addEventListener('click', () => {
+                try {
                     soundController.init();
-                    soundController.startAmbient();
+                    soundController.playClick();
+                    this.startOverlay.classList.remove('active');
+                    this.initGame();
+                } catch (e) {
+                    console.error("Error starting game:", e);
+                    alert("Error starting game: " + e.message + "\n" + e.stack);
                 }
             });
+
+            // Restart Expedition
+            this.btnRestart.addEventListener('click', () => {
+                try {
+                    soundController.playClick();
+                    this.gameOverOverlay.classList.remove('active');
+                    this.initGame();
+                } catch (e) {
+                    console.error("Error restarting game:", e);
+                    alert("Error restarting game: " + e.message + "\n" + e.stack);
+                }
+            });
+
+            // Task Assignments Woodcutters
+            const btnWp = document.getElementById('btn-woodcutters-plus');
+            const btnWm = document.getElementById('btn-woodcutters-minus');
+            const btnFp = document.getElementById('btn-fishers-plus');
+            const btnFm = document.getElementById('btn-fishers-minus');
+
+            if (!btnWp || !btnWm || !btnFp || !btnFm) {
+                throw new Error("One or more task assignment buttons not found in DOM!");
+            }
+
+            btnWp.addEventListener('click', () => this.assignJob('woodcutter', 10));
+            btnWm.addEventListener('click', () => this.assignJob('woodcutter', -10));
+            btnFp.addEventListener('click', () => this.assignJob('fisher', 10));
+            btnFm.addEventListener('click', () => this.assignJob('fisher', -10));
+
+            // Emergency Recall
+            this.btnRecall.addEventListener('click', () => this.recallAll());
+
+            // Mute Audio Toggle
+            const muteBtn = document.getElementById('mute-btn');
+            if (muteBtn) {
+                muteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    soundController.muted = !soundController.muted;
+                    muteBtn.textContent = soundController.muted ? '🔇' : '🔊';
+                    soundController.playClick();
+                    if (soundController.muted) {
+                        soundController.stopAmbient();
+                    } else {
+                        soundController.init();
+                        soundController.startAmbient();
+                    }
+                });
+            }
+        } catch (err) {
+            console.error("GameEngine setupHandlers Error:", err);
+            alert("setupHandlers Error: " + err.message + "\nStack: " + err.stack);
         }
     }
 
