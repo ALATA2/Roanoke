@@ -4,6 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Roanoke: The 101 - Survival RTS</title>
+    <!-- Global Error Logger for Diagnostics -->
+    <script>
+        window.onerror = function(message, source, lineno, colno, error) {
+            const errDetails = "Global Error: " + message + 
+                               "\nSource: " + source + 
+                               "\nLine: " + lineno + " Col: " + colno + 
+                               "\nError: " + (error ? error.stack : 'None');
+            console.error(errDetails);
+            alert(errDetails);
+            return false;
+        };
+    </script>
+    
     <!-- SEO Meta Tags -->
     <meta name="description" content="Roanoke: The 101 is a minimal, mobile-first RTS survival game where you command 101 colonists to survive the mysteries and horrors of the Roanoke colony.">
     
@@ -118,7 +131,7 @@
                         <li>💀 <strong>Game Over</strong>: If population falls to 0, or food reserves hit 0, the colony is lost.</li>
                     </ul>
                 </div>
-                <button id="btn-start" class="action-btn">SETTLE ROANOKE</button>
+                <button id="btn-start" class="action-btn" onclick="alert('Start Button click detected by browser!')">SETTLE ROANOKE</button>
             </div>
         </div>
 
