@@ -1,0 +1,623 @@
+/* --- DESIGN SYSTEM & RESET --- */
+:root {
+    /* Color Palette - Moody, Gothic, Colonial Roanoke */
+    --color-bg-darkest: #050706;    /* Shadow black */
+    --color-bg-darker: #0d110f;     /* Very dark charcoal green */
+    --color-bg-panel: #141c18;      /* Deep forest panel */
+    --color-fort: #8c7853;          /* Weathered wood brown */
+    --color-forest: #1e3a27;        /* Foggy pine green */
+    --color-coast: #1b363c;         /* Dark cold coastal teal */
+    --color-accent: #bf9850;        /* Brass/Gold */
+    --color-threat: #8b0000;        /* Deep blood red */
+    --color-text-bright: #e6e8e7;   /* Parchment grey */
+    --color-text-dim: #8fa095;      /* Faded moss grey */
+    
+    /* Typography */
+    --font-heading: 'Cinzel', Georgia, serif;
+    --font-body: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+    
+    /* Animation speed */
+    --transition-speed: 0.3s;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent; /* Disable touch highlight on mobile */
+    user-select: none; /* Prevent text selection for game feel */
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* Prevent elastic scrolling */
+    background-color: var(--color-bg-darkest);
+    color: var(--color-text-bright);
+    font-family: var(--font-body);
+    font-size: 16px;
+}
+
+/* Base Game Shell */
+#game-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height for mobile browsers */
+    max-width: 600px; /* Centered on desktop, fullscreen on mobile */
+    margin: 0 auto;
+    background-color: var(--color-bg-darker);
+    position: relative;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+    border-left: 1px solid rgba(255, 255, 255, 0.05);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* --- 1. TOP BAR (STATS PANEL) --- */
+#top-bar {
+    height: 8%;
+    min-height: 55px;
+    background: linear-gradient(180deg, rgba(5,7,6,0.95) 0%, rgba(13,17,15,0.95) 100%);
+    border-bottom: 2px solid rgba(140, 120, 83, 0.25);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0 10px;
+    z-index: 10;
+}
+
+.stat-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+}
+
+.stat-label {
+    font-family: var(--font-heading);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--color-text-dim);
+    margin-bottom: 2px;
+}
+
+.stat-value {
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    font-weight: 900;
+    color: var(--color-accent);
+    text-shadow: 0 0 10px rgba(191, 152, 80, 0.2);
+    transition: color var(--transition-speed);
+}
+
+#stat-population .stat-value {
+    color: var(--color-text-bright);
+}
+
+#stat-food .stat-value.danger {
+    color: #ff3333;
+    animation: pulse 1s infinite alternate;
+}
+
+/* --- 2. GAME CANVAS VIEWPORT --- */
+#canvas-container {
+    height: 52%;
+    position: relative;
+    background-color: #0c0e0d;
+    overflow: hidden;
+    border-bottom: 2px solid rgba(140, 120, 83, 0.15);
+}
+
+#game-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* Vignette Overlay for atmosphere & Night fog contraction */
+#canvas-vignette {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.95);
+    transition: box-shadow 3s ease;
+}
+
+/* Vignette contracts during night */
+#game-container.night #canvas-vignette {
+    box-shadow: inset 0 0 160px rgba(0, 0, 0, 0.98);
+}
+
+/* Overlay HUD directly on top of Canvas */
+#canvas-hud {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: none;
+}
+
+#time-hud {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: rgba(5, 7, 6, 0.7);
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    pointer-events: auto;
+    width: 120px;
+    backdrop-filter: blur(4px);
+}
+
+#time-phase {
+    font-family: var(--font-heading);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    color: var(--color-accent);
+    text-align: center;
+}
+
+#time-bar-outer {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+#time-bar-inner {
+    height: 100%;
+    width: 100%;
+    background-color: var(--color-accent);
+    border-radius: 3px;
+    transition: width 0.1s linear, background-color var(--transition-speed);
+}
+
+#game-container.night #time-phase {
+    color: #ff3333;
+}
+
+#game-container.night #time-bar-inner {
+    background-color: #ff3333;
+}
+
+/* Audio Mute Button */
+.icon-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(5, 7, 6, 0.75);
+    border: 1px solid rgba(140, 120, 83, 0.3);
+    color: var(--color-accent);
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    pointer-events: auto;
+    backdrop-filter: blur(4px);
+    transition: transform 0.2s, background-color var(--transition-speed);
+}
+
+.icon-btn:active {
+    transform: scale(0.9);
+    background: rgba(5, 7, 6, 0.95);
+}
+
+/* --- 3. CONTROLS & EVENT PANEL --- */
+#controls-container {
+    height: 40%;
+    background-color: var(--color-bg-panel);
+    display: flex;
+    flex-direction: column;
+    padding: 10px 15px;
+    gap: 8px;
+    justify-content: space-between;
+}
+
+/* Event Logger Log */
+#event-feed {
+    flex-grow: 1;
+    background: rgba(5, 7, 6, 0.5);
+    border: 1px solid rgba(140, 120, 83, 0.15);
+    border-radius: 6px;
+    padding: 8px 12px;
+    overflow-y: auto;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    font-family: var(--font-body);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 75px;
+}
+
+.feed-item {
+    color: var(--color-text-dim);
+    animation: fadeIn 0.3s ease-out;
+}
+
+.feed-item.system {
+    color: var(--color-accent);
+    font-weight: 600;
+}
+
+.feed-item.warning {
+    color: #ffa500;
+    font-weight: 600;
+}
+
+.feed-item.danger {
+    color: #ff3333;
+    font-weight: 700;
+    animation: shake 0.4s ease-out;
+}
+
+/* Assignments & Recall Buttons */
+.control-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.assignment-row {
+    background: rgba(5, 7, 6, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.assignment-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+}
+
+.job-icon {
+    font-size: 1.4rem;
+}
+
+.job-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.job-title {
+    font-family: var(--font-heading);
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--color-text-bright);
+}
+
+.job-desc {
+    font-size: 0.65rem;
+    color: var(--color-text-dim);
+}
+
+.job-count {
+    margin-left: auto;
+    margin-right: 15px;
+    background: rgba(140, 120, 83, 0.15);
+    border: 1px solid rgba(140, 120, 83, 0.4);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-family: var(--font-heading);
+    font-weight: 800;
+    font-size: 0.9rem;
+    color: var(--color-accent);
+    min-width: 40px;
+    text-align: center;
+}
+
+/* Assignment plus/minus buttons */
+.button-group {
+    display: flex;
+    gap: 6px;
+}
+
+.control-btn {
+    width: 48px;  /* Minimum tap target sizing */
+    height: 44px;
+    border: 1px solid rgba(140, 120, 83, 0.4);
+    background: linear-gradient(180deg, #1e2a22 0%, #131c17 100%);
+    color: var(--color-text-bright);
+    font-family: var(--font-heading);
+    font-weight: 800;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s, filter 0.2s, background 0.2s;
+}
+
+.control-btn.minus {
+    background: linear-gradient(180deg, #2b1f1a 0%, #1c1310 100%);
+    border-color: rgba(180, 100, 80, 0.3);
+}
+
+.control-btn:active {
+    transform: scale(0.92);
+}
+
+.control-btn:disabled {
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+/* Recall All Button */
+.recall-btn {
+    width: 100%;
+    height: 48px;
+    border-radius: 8px;
+    border: 2px solid var(--color-accent);
+    background: linear-gradient(180deg, #b08130 0%, #7e5a1b 100%);
+    color: var(--color-bg-darkest);
+    font-family: var(--font-heading);
+    font-weight: 900;
+    font-size: 0.95rem;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    transition: transform 0.15s, background-color var(--transition-speed), filter 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.recall-btn:active {
+    transform: translateY(2px) scale(0.98);
+}
+
+/* Urgent state during night */
+#game-container.night .recall-btn {
+    border-color: #ff3333;
+    background: linear-gradient(180deg, #cc2222 0%, #880000 100%);
+    color: var(--color-text-bright);
+    box-shadow: 0 0 15px rgba(255, 50, 50, 0.35);
+    animation: urgentPulse 1.5s infinite;
+}
+
+/* --- 4. OVERLAY SCREENS (GLASSMORPHISM) --- */
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(5, 7, 6, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+}
+
+.overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.overlay-content {
+    background: linear-gradient(135deg, rgba(20, 28, 24, 0.9) 0%, rgba(13, 17, 15, 0.95) 100%);
+    border: 2px solid var(--color-accent);
+    border-radius: 12px;
+    padding: 30px 24px;
+    width: 100%;
+    max-width: 460px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    animation: modalSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.game-title {
+    font-family: var(--font-heading);
+    font-size: 2.8rem;
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    color: var(--color-accent);
+    text-shadow: 0 0 20px rgba(191, 152, 80, 0.4);
+    line-height: 1;
+}
+
+.game-subtitle {
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    font-weight: 500;
+    letter-spacing: 0.4em;
+    color: var(--color-text-bright);
+    margin-top: 5px;
+    margin-bottom: 20px;
+    padding-left: 0.4em; /* center due to letter spacing */
+}
+
+.divider {
+    width: 80px;
+    height: 2px;
+    background-color: var(--color-accent);
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.game-desc {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--color-text-dim);
+    margin-bottom: 20px;
+}
+
+.rules-card {
+    background: rgba(5, 7, 6, 0.6);
+    border: 1px solid rgba(140, 120, 83, 0.2);
+    border-radius: 6px;
+    padding: 15px;
+    text-align: left;
+    margin-bottom: 25px;
+    width: 100%;
+}
+
+.rules-card h3 {
+    font-family: var(--font-heading);
+    font-size: 0.85rem;
+    color: var(--color-accent);
+    margin-bottom: 8px;
+    letter-spacing: 0.05em;
+}
+
+.rules-card ul {
+    list-style: none;
+}
+
+.rules-card li {
+    font-size: 0.78rem;
+    line-height: 1.45;
+    margin-bottom: 8px;
+    color: var(--color-text-bright);
+    position: relative;
+    padding-left: 14px;
+}
+
+.rules-card li::before {
+    content: "•";
+    color: var(--color-accent);
+    position: absolute;
+    left: 0;
+    font-size: 1rem;
+}
+
+.action-btn {
+    width: 100%;
+    max-width: 250px;
+    height: 48px;
+    background: transparent;
+    border: 2px solid var(--color-accent);
+    color: var(--color-accent);
+    font-family: var(--font-heading);
+    font-weight: 800;
+    font-size: 0.95rem;
+    letter-spacing: 0.1em;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s;
+}
+
+.action-btn:hover {
+    background-color: var(--color-accent);
+    color: var(--color-bg-darkest);
+    box-shadow: 0 0 20px rgba(191, 152, 80, 0.4);
+}
+
+.action-btn:active {
+    transform: scale(0.95);
+}
+
+/* Game Over styling differences */
+.lost-title {
+    color: var(--color-threat) !important;
+    text-shadow: 0 0 25px rgba(139, 0, 0, 0.8) !important;
+    animation: glitchText 3s infinite alternate;
+}
+
+#game-over-overlay .overlay-content {
+    border-color: var(--color-threat);
+}
+
+.stats-report {
+    width: 100%;
+    background: rgba(139, 0, 0, 0.08);
+    border: 1px solid rgba(139, 0, 0, 0.25);
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 25px;
+    text-align: left;
+}
+
+.stat-line {
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+    color: var(--color-text-bright);
+    display: flex;
+    justify-content: space-between;
+}
+
+.stat-line strong {
+    color: var(--color-accent);
+}
+
+.stat-line em {
+    color: var(--color-text-dim);
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
+#game-over-overlay .action-btn {
+    border-color: var(--color-threat);
+    color: var(--color-threat);
+}
+
+#game-over-overlay .action-btn:hover {
+    background-color: var(--color-threat);
+    color: var(--color-text-bright);
+    box-shadow: 0 0 20px rgba(139, 0, 0, 0.5);
+}
+
+/* --- KEYFRAMES & ANIMATIONS --- */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes modalSlideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+    from { opacity: 0.7; }
+    to { opacity: 1; }
+}
+
+@keyframes urgentPulse {
+    0% { box-shadow: 0 0 5px rgba(255, 50, 50, 0.4); }
+    50% { box-shadow: 0 0 20px rgba(255, 50, 50, 0.7); }
+    100% { box-shadow: 0 0 5px rgba(255, 50, 50, 0.4); }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-4px); }
+    40%, 80% { transform: translateX(4px); }
+}
+
+@keyframes glitchText {
+    0% { transform: skew(0deg); }
+    2% { transform: skew(3deg); }
+    4% { transform: skew(-3deg); }
+    6% { transform: skew(0deg); }
+    100% { transform: skew(0deg); }
+}

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Roanoke: The 101 - Survival RTS</title>
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Roanoke: The 101 is a minimal, mobile-first RTS survival game where you command 101 colonists to survive the mysteries and horrors of the Roanoke colony.">
+    
+    <!-- OpenGraph/Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Roanoke: The 101 - Survival RTS">
+    <meta property="og:description" content="Survive the mysteries and horrors of the Roanoke colony with exactly 101 settlers.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800;900&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- Top Bar for Stats -->
+        <header id="top-bar">
+            <div class="stat-box" id="stat-day">
+                <span class="stat-label">DAY</span>
+                <span class="stat-value" id="val-day">1</span>
+            </div>
+            <div class="stat-box" id="stat-population">
+                <span class="stat-label">POPULATION</span>
+                <span class="stat-value" id="val-population">101</span>
+            </div>
+            <div class="stat-box" id="stat-food">
+                <span class="stat-label">FOOD</span>
+                <span class="stat-value" id="val-food">250</span>
+            </div>
+            <div class="stat-box" id="stat-wood">
+                <span class="stat-label">WOOD</span>
+                <span class="stat-value" id="val-wood">0</span>
+            </div>
+        </header>
+
+        <!-- Canvas Container (Top 60% approx, minus top-bar) -->
+        <div id="canvas-container">
+            <canvas id="game-canvas"></canvas>
+            <div id="canvas-vignette"></div>
+            <!-- Dynamic HUD Layer on Canvas -->
+            <div id="canvas-hud">
+                <div id="time-hud">
+                    <span id="time-phase">☀️ DAY</span>
+                    <div id="time-bar-outer">
+                        <div id="time-bar-inner"></div>
+                    </div>
+                </div>
+                <button id="mute-btn" class="icon-btn" aria-label="Mute Audio">🔊</button>
+            </div>
+        </div>
+
+        <!-- Controls Container (Bottom 40% approx) -->
+        <div id="controls-container">
+            <!-- Event Log Feed for atmosphere and status reports -->
+            <div id="event-feed">
+                <div class="feed-item system">101 souls arrive at Roanoke. Establish a settlement.</div>
+            </div>
+
+            <!-- Control Rows -->
+            <div class="control-panel">
+                <div class="assignment-row">
+                    <div class="assignment-info">
+                        <span class="job-icon">🪓</span>
+                        <div class="job-details">
+                            <span class="job-title">Woodcutters</span>
+                            <span class="job-desc">Harvests wood in Forest</span>
+                        </div>
+                        <span class="job-count" id="count-woodcutters">0</span>
+                    </div>
+                    <div class="button-group">
+                        <button class="control-btn minus" id="btn-woodcutters-minus" aria-label="Remove 10 woodcutters">-10</button>
+                        <button class="control-btn plus" id="btn-woodcutters-plus" aria-label="Add 10 woodcutters">+10</button>
+                    </div>
+                </div>
+
+                <div class="assignment-row">
+                    <div class="assignment-info">
+                        <span class="job-icon">🐟</span>
+                        <div class="job-details">
+                            <span class="job-title">Fishers</span>
+                            <span class="job-desc">Gathers food at Coast</span>
+                        </div>
+                        <span class="job-count" id="count-fishers">0</span>
+                    </div>
+                    <div class="button-group">
+                        <button class="control-btn minus" id="btn-fishers-minus" aria-label="Remove 10 fishers">-10</button>
+                        <button class="control-btn plus" id="btn-fishers-plus" aria-label="Add 10 fishers">+10</button>
+                    </div>
+                </div>
+
+                <button id="btn-recall" class="recall-btn">RECALL ALL TO FORT</button>
+            </div>
+        </div>
+
+        <!-- Start Overlay -->
+        <div id="start-overlay" class="overlay active">
+            <div class="overlay-content">
+                <h1 class="game-title">ROANOKE</h1>
+                <h2 class="game-subtitle">THE 101</h2>
+                <div class="divider"></div>
+                <p class="game-desc">
+                    Exactly 101 English settlers have landed on Roanoke Island. 
+                    You must balance their tasks to survive, but the wild is dark and full of terrors.
+                </p>
+                <div class="rules-card">
+                    <h3>Rules of Survival:</h3>
+                    <ul>
+                        <li>☀️ <strong>Day (30s)</strong>: Assign woodcutters to gather wood and fishers to catch food. Idle colonists stay in the Fort and consume food.</li>
+                        <li>🌙 <strong>Night (15s)</strong>: A thick fog settles. Anyone left outside the Fort has a chance to vanish into the dark.</li>
+                        <li>🚨 <strong>Recall</strong>: Tap the "RECALL ALL TO FORT" button before nightfall to save your workforce!</li>
+                        <li>💀 <strong>Game Over</strong>: If population falls to 0, or food reserves hit 0, the colony is lost.</li>
+                    </ul>
+                </div>
+                <button id="btn-start" class="action-btn">SETTLE ROANOKE</button>
+            </div>
+        </div>
+
+        <!-- Game Over Overlay -->
+        <div id="game-over-overlay" class="overlay">
+            <div class="overlay-content">
+                <h1 class="game-title lost-title">CROATAN</h1>
+                <h2 class="game-subtitle">THE COLONY IS LOST</h2>
+                <div class="divider"></div>
+                <div class="stats-report">
+                    <p class="stat-line">Days Survived: <strong id="stat-days-survived">1</strong></p>
+                    <p class="stat-line">Max Wood Stored: <strong id="stat-max-wood">0</strong></p>
+                    <p class="stat-line">Final Population: <strong id="stat-final-pop">0</strong></p>
+                    <p class="stat-line">Futility Cause: <em id="stat-cause">Famine took the last souls.</em></p>
+                </div>
+                <button id="btn-restart" class="action-btn">RESTART EXPEDITION</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
