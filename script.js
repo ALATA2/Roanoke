@@ -628,6 +628,9 @@ class GameEngine {
     }
 
     initGame() {
+        // Recalculate layout dimensions to ensure non-zero values on start
+        this.resize();
+
         this.food = 250;
         this.wood = 0;
         this.population = 101;
