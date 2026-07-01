@@ -788,13 +788,19 @@ class GameEngine {
     loop(timestamp) {
         if (!this.isRunning || this.gameOverState) return;
 
-        const deltaTime = Math.min((timestamp - this.lastTime) / 1000, 0.1); // cap spikes
-        this.lastTime = timestamp;
+        try {
+            const deltaTime = Math.min((timestamp - this.lastTime) / 1000, 0.1); // cap spikes
+            this.lastTime = timestamp;
 
-        this.update(deltaTime);
-        this.draw();
+            this.update(deltaTime);
+            this.draw();
 
-        requestAnimationFrame((time) => this.loop(time));
+            requestAnimationFrame((time) => this.loop(time));
+        } catch (err) {
+            this.isRunning = false;
+            console.error("Game Loop Error:", err);
+            alert("Game Loop Error: " + err.message + "\nStack: " + err.stack);
+        }
     }
 
     update(deltaTime) {
