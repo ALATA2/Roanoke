@@ -265,6 +265,63 @@ class SoundController {
             osc.stop(now + 2.5);
         });
     }
+
+    playStoke() {
+        if (!this.ctx || this.muted) return;
+        const now = this.ctx.currentTime;
+        // Warm wood thud
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(100, now);
+        osc.frequency.linearRampToValueAtTime(220, now + 0.15);
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.linearRampToValueAtTime(0.001, now + 0.15);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.15);
+
+        // Crackles (White noise pops)
+        for (let i = 0; i < 4; i++) {
+            const timeOffset = Math.random() * 0.2;
+            const clickOsc = this.ctx.createOscillator();
+            const clickGain = this.ctx.createGain();
+            clickOsc.type = 'sawtooth';
+            clickOsc.frequency.setValueAtTime(700 + Math.random() * 400, now + timeOffset);
+            clickGain.gain.setValueAtTime(0.015, now + timeOffset);
+            clickGain.gain.exponentialRampToValueAtTime(0.001, now + timeOffset + 0.03);
+            clickOsc.connect(clickGain);
+            clickGain.connect(this.ctx.destination);
+            clickOsc.start(now + timeOffset);
+            clickOsc.stop(now + timeOffset + 0.03);
+        }
+    }
+
+    playFireWarning() {
+        if (!this.ctx || this.muted) return;
+        const now = this.ctx.currentTime;
+        // Low doom warning sweeps
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(80, now);
+        osc.frequency.linearRampToValueAtTime(35, now + 1.8);
+        
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(140, now);
+        filter.frequency.exponentialRampToValueAtTime(45, now + 1.8);
+
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 1.8);
+    }
 }
 
 const soundController = new SoundController();
@@ -828,9 +885,26 @@ class GameEngine {
         // Visual Vignette transition class
         if (isNight && oldTime < 30) {
             this.container.classList.add('night');
-            this.logEvent("🌙 Night falls. A thick fog gathers outside the palisade!", "warning");
             soundController.setNightAmbient(true);
             soundController.playRecall();
+
+            // Campfire Fuel Check Mechanic
+            const requiredWood = 15 + (this.day - 1) * 5; // Increases with days survived
+            if (this.wood >= requiredWood) {
+                this.wood -= requiredWood;
+                this.zones.fort.safeRadius = 60; // Stay fully safe
+                this.logEvent(`🔥 Campfire stoked with ${requiredWood} wood. The bright light protects the Fort.`, "system");
+                soundController.playStoke();
+            } else {
+                const hadWood = Math.floor(this.wood);
+                this.wood = 0;
+                // Safe zone contracts based on the wood deficiency fraction
+                const fraction = requiredWood > 0 ? (hadWood / requiredWood) : 1;
+                this.zones.fort.safeRadius = Math.round(20 + fraction * 40); // Shrinks from 60px down to 20px
+                this.logEvent(`🚨 Firewood deficient! (Need ${requiredWood}, had ${hadWood}). Campfire burns low... Safe zone contracted to ${this.zones.fort.safeRadius}px!`, "danger");
+                soundController.playFireWarning();
+                this.screenShake = 6; // screen rumble
+            }
         }
 
         // Night phase end (Day breaks)
@@ -838,6 +912,7 @@ class GameEngine {
             this.timeOfDay = 0;
             this.day++;
             this.container.classList.remove('night');
+            this.zones.fort.safeRadius = 60; // Restore full Safe Zone during day
             this.logEvent(`☀️ Day ${this.day} begins. The morning sun clears the fog.`, "system");
             soundController.setNightAmbient(false);
             soundController.playDaybreak();
@@ -1106,9 +1181,12 @@ class GameEngine {
         this.ctx.stroke();
         this.ctx.setLineDash([]); // Reset dash
 
-        // 4. Center Campfire star
-        const fireSize = 3 + Math.sin(now * 0.02) * 1.5;
-        this.ctx.fillStyle = '#ffaa33';
+        // 4. Center Campfire star (shrinks and flickers dim if safe zone contracted)
+        const isDim = zone.safeRadius < 60;
+        const fireBase = isDim ? 1.5 : 3.5;
+        const fireOsc = isDim ? 0.6 : 1.5;
+        const fireSize = fireBase + Math.sin(now * 0.02) * fireOsc;
+        this.ctx.fillStyle = isDim ? '#cc5511' : '#ffaa33'; // Dim red-orange vs blazing yellow
         this.ctx.beginPath();
         this.ctx.arc(zone.x, zone.y, fireSize, 0, Math.PI * 2);
         this.ctx.fill();
